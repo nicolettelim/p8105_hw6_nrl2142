@@ -12,6 +12,71 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(modelr)
 library(mgcv)
+library(broom)
+library(ggplot2)
 set.seed(1)
 ```
+
+# Problem 1
+
+```{r, warning = FALSE}
+murder_df = read.csv(file ="homicide-data.csv") |>
+  janitor::clean_names()|>
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    resolved = as.numeric(disposition == "Closed by arrest"),
+    victim_age = as.numeric (victim_age)
+  ) |>
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
+    victim_race %in% c("White", "Black")) |>
+  select(city_state, resolved, victim_age, victim_sex, victim_race)
+
+baltimore_df = murder_df |>
+  filter(city_state == "Baltimore, MD")
+
+baltimore_logistic = glm(resolved~victim_age + victim_sex + victim_race, 
+                         data = baltimore_df, family=binomial())
+
+baltimore_logistic |>
+  broom::tidy(conf.int = TRUE) |>
+  filter (term == "victim_sexMale")|>
+  mutate(
+    odds_ratio = exp(estimate),
+    conf_low = exp(conf.low),
+    conf_high = exp(conf.high)) |>
+  select (odds_ratio, conf_low, conf_high) |>
+  knitr::kable(digits =3)
+
+city_glm = function(city_data) {
+  model = glm(resolved ~ victim_age + victim_sex + victim_race,
+              data = city_data,
+              family = binomial())
+  model |>
+    broom::tidy(conf.int = TRUE) |>
+    filter (term == "victim_sexMale")|>
+  mutate(
+    odds_ratio = exp(estimate),
+    conf_low = exp(conf.low),
+    conf_high = exp(conf.high)) |>
+  select (odds_ratio, conf_low, conf_high)
+}
+
+city_data = murder_df |>
+  group_by (city_state) |>
+  nest() |>
+  mutate (model_results = map(data, ~city_glm(.x))) |>
+  unnest(model_results)
+  
+ggplot(city_data, aes(y=reorder(city_state, odds_ratio))) +
+  geom_point (aes(x=odds_ratio)) +
+  geom_errorbarh(aes(xmin = conf_low, xmax = conf_high), height =0.2) +
+  labs(
+    title = "Adjusted Odds Ratio for Solving Homicides by City",
+    x = "Odds Ratio (log)",
+    y = "City"
+  )
+
+```
+
 
