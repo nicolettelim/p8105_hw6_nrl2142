@@ -1,0 +1,17 @@
+---
+title: "p8105_hw6_nrl2142"
+output: github_document
+date: "2025-11-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(modelr)
+library(mgcv)
+set.seed(1)
+```
+
