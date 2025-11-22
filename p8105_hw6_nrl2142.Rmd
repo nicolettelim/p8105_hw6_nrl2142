@@ -79,4 +79,7 @@ ggplot(city_data, aes(y=reorder(city_state, odds_ratio))) +
 
 ```
 
+Among the 50 large cities in the dataset, Albuquerque, NM has the highest adjusted OR for solving homicides comparing male victims to female victims while New York, NY has the lowest adjusted OR. This means that in Albuquerque, male victim cases are more likely to be solved than female victim cases (adjusted OR >1) while in New York, female victim cases are more likely to be solved than male victim cases (adjusted OR<1).
+
+
 
