@@ -14,6 +14,7 @@ library(modelr)
 library(mgcv)
 library(broom)
 library(ggplot2)
+library(p8105.datasets)
 set.seed(1)
 ```
 
@@ -81,5 +82,47 @@ ggplot(city_data, aes(y=reorder(city_state, odds_ratio))) +
 
 Among the 50 large cities in the dataset, Albuquerque, NM has the highest adjusted OR for solving homicides comparing male victims to female victims while New York, NY has the lowest adjusted OR. This means that in Albuquerque, male victim cases are more likely to be solved than female victim cases (adjusted OR >1) while in New York, female victim cases are more likely to be solved than male victim cases (adjusted OR<1).
 
+# Problem 2
 
+```{r}
+data("weather_df")
+
+computestats = function(df) {
+  fit = lm (tmax ~ tmin+prcp, data = df)
+  r_square = glance(fit)$r.squared
+  betas = tidy(fit)
+  beta_ratio = betas$estimate[betas$term == "tmin"]/betas$estimate[betas$term == "prcp"]
+  
+  tibble(r_square = r_square, beta_ratio = beta_ratio)
+}
+
+n_boot = 5000
+boot_results = tibble(boot_id = 1:n_boot) |>
+  mutate (
+    boot_sample = map(boot_id, ~ sample_n(weather_df, size = nrow(weather_df), replace = TRUE)),
+    stats = map(boot_sample, computestats)
+  ) |>
+  unnest(stats)
+
+plot1 = ggplot(boot_results, aes(x=r_square)) +
+  geom_histogram() +
+  labs(title = "Distribution of R-square", x = "R-square", y = "Count")
+
+plot2 = ggplot(boot_results, aes(x=beta_ratio)) + geom_histogram() +
+  labs(title = "Distribution of β1/β2", x="β1/β2", y ="Count")
+
+plot1
+plot2 
+
+confidence_r_square = quantile(boot_results$r_square, c(0.025, 0.975))
+
+confidence_beta_ratio = quantile(boot_results$beta_ratio, c(0.025,0.975))
+
+confidence_r_square
+confidence_beta_ratio
+```
+
+The range of values of R-square is approximately from 0.930 to 0.950 with a peak at around 0.943. The distribution of R-square appears to be approximately normally distributed. On the other hand, the range of values of β1/β2 is approximately from -400 to -100 with a peak at around -230. The distribution of β1/β2 appears to be left-skewed with a long tail extending towards the lower values. 
+
+The 95% confidence interval for r-square is between 0.934 and 0.947. We are 95% confidenct that the true r-square value lies within this range. On the other hand, the 95% confidence interval for β1/β2 is -278.08 and -125.75. We are 95% confident that the true β1/β2 value lies within this range.
 
